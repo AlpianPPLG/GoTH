@@ -1,0 +1,208 @@
+package components
+
+import (
+	"fmt"
+	"pulseops/internal/telemetry"
+)
+
+// MetricsGrid merender grid telemetri lengkap dengan SVG Sparkline real-time.
+templ MetricsGrid(node *telemetry.ClusterNode, oob bool) {
+	<div
+		id="metrics-grid"
+		if oob {
+			hx-swap-oob="outerHTML"
+		}
+		class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+	>
+		<!-- 1. CPU Usage Card with Real-Time SVG Sparkline -->
+		<div class="p-4 rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-xs font-mono text-slate-400 uppercase tracking-wider">CPU Utilization</span>
+					<span class={ "text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase", cpuBadgeClass(node.Metrics.CPUPercent) }>
+						{ cpuLabel(node.Metrics.CPUPercent) }
+					</span>
+				</div>
+				<div class="flex items-baseline justify-between">
+					<div class="text-3xl font-mono font-bold tracking-tight text-white glow-cyan">
+						{ fmt.Sprintf("%.1f%%", node.Metrics.CPUPercent) }
+					</div>
+					<div class="text-xs font-mono text-slate-400">16 Cores</div>
+				</div>
+			</div>
+
+			<!-- Live SVG Sparkline (Server-Rendered!) -->
+			@Sparkline(node.Metrics.CPUHistory, sparklineStroke(node.Metrics.CPUPercent), "cpu-sparkline-grad")
+
+			<div class="mt-2 flex items-center justify-between text-[11px] font-mono text-slate-500">
+				<span>T-30s history</span>
+				<span>Live SVG Stream</span>
+			</div>
+		</div>
+
+		<!-- 2. Memory (RAM) Card -->
+		<div class="p-4 rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-xs font-mono text-slate-400 uppercase tracking-wider">RAM Allocation</span>
+					<span class="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded bg-cyan-950/40 border border-cyan-500/20">
+						{ fmt.Sprintf("%.1f%%", node.Metrics.RAMPercent) }
+					</span>
+				</div>
+				<div class="flex items-baseline justify-between">
+					<div class="text-3xl font-mono font-bold tracking-tight text-white">
+						{ fmt.Sprintf("%.1f", node.Metrics.RAMUsedGB) }
+						<span class="text-sm font-normal text-slate-400">GB</span>
+					</div>
+					<div class="text-xs font-mono text-slate-400">{ fmt.Sprintf("of %.0f GB", node.Metrics.RAMTotalGB) }</div>
+				</div>
+			</div>
+			
+			<div class="mt-4">
+				<div class="w-full bg-surface-900 rounded-full h-2 overflow-hidden">
+					<div
+						class="h-full bg-cyan-500 transition-all duration-500 rounded-full"
+						style={ fmt.Sprintf("width: %.1f%%", node.Metrics.RAMPercent) }
+					></div>
+				</div>
+				<div class="mt-2 flex items-center justify-between text-[11px] font-mono text-slate-400">
+					<span>Free: { fmt.Sprintf("%.1f GB", node.Metrics.RAMTotalGB - node.Metrics.RAMUsedGB) }</span>
+					<span>Buffers: 1.2 GB</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- 3. Network I/O Card -->
+		<div class="p-4 rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-xs font-mono text-slate-400 uppercase tracking-wider">Network Throughput</span>
+					<span class="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/20">
+						ONLINE
+					</span>
+				</div>
+				<div class="flex items-baseline justify-between">
+					<div class="text-3xl font-mono font-bold tracking-tight text-white">
+						{ fmt.Sprintf("%.1f", node.Metrics.NetworkRateMB) }
+						<span class="text-sm font-normal text-slate-400">MB/s</span>
+					</div>
+					<div class="text-xs font-mono text-slate-400">10 Gbps Link</div>
+				</div>
+			</div>
+
+			<div class="mt-4 pt-2 border-t border-surface-700/60 flex items-center justify-between text-[11px] font-mono text-emerald-400">
+				<span>▲ In: 112.4 MB/s</span>
+				<span>▼ Out: 98.4 MB/s</span>
+			</div>
+		</div>
+
+		<!-- 4. Active Worker Tasks & Node Meta -->
+		<div class="p-4 rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-xs font-mono text-slate-400 uppercase tracking-wider">Worker Goroutines</span>
+					<span class="text-[10px] font-mono text-purple-400 px-2 py-0.5 rounded bg-purple-950/40 border border-purple-500/20">
+						SCHEDULER
+					</span>
+				</div>
+				<div class="flex items-baseline justify-between">
+					<div class="text-3xl font-mono font-bold tracking-tight text-white">
+						{ fmt.Sprintf("%d", node.Metrics.ActiveTasks) }
+					</div>
+					<div class="text-xs font-mono text-slate-400">Threads: 32</div>
+				</div>
+			</div>
+
+			<div class="mt-4 pt-2 border-t border-surface-700/60 flex items-center justify-between text-[11px] font-mono text-purple-300">
+				<span>Node: { node.ID }</span>
+				<span class="px-1.5 py-0.2 rounded bg-purple-950 border border-purple-500/30 text-[10px]">{ node.Region }</span>
+			</div>
+		</div>
+	</div>
+}
+
+// HeaderStatusBadge memperbarui status kesehatan di navbar via OOB
+templ HeaderStatusBadge(status string, oob bool) {
+	<div
+		id="header-status-badge"
+		if oob {
+			hx-swap-oob="outerHTML"
+		}
+		class={ "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium transition-all duration-300", headerStatusClass(status) }
+	>
+		<span class={ "w-2 h-2 rounded-full", headerDotClass(status) }></span>
+		<span>SYSTEM { status }</span>
+	</div>
+}
+
+// HeaderAlertCounter memperbarui angka unread alert di navbar via OOB
+templ HeaderAlertCounter(count int, oob bool) {
+	<div
+		id="header-alert-counter"
+		if oob {
+			hx-swap-oob="outerHTML"
+		}
+		class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-700/60 border border-surface-600 text-slate-300 text-xs font-mono transition-all"
+	>
+		<span class="text-slate-400">Active Incidents:</span>
+		<span id="alert-counter-num" class={ "font-bold", alertCountColor(count) }>
+			{ fmt.Sprintf("%d", count) }
+		</span>
+	</div>
+}
+
+func sparklineStroke(cpu float64) string {
+	if cpu > 85.0 {
+		return "#f43f5e" // rose-500
+	} else if cpu > 65.0 {
+		return "#fbbf24" // amber-400
+	}
+	return "#06b6d4" // cyan-500
+}
+
+func cpuLabel(cpu float64) string {
+	if cpu > 85.0 {
+		return "CRITICAL"
+	} else if cpu > 65.0 {
+		return "ELEVATED"
+	}
+	return "NORMAL"
+}
+
+func cpuBadgeClass(cpu float64) string {
+	if cpu > 85.0 {
+		return "bg-rose-950/60 text-rose-400 border border-rose-500/40 animate-pulse"
+	} else if cpu > 65.0 {
+		return "bg-amber-950/60 text-amber-400 border border-amber-500/40"
+	}
+	return "bg-cyan-950/40 text-cyan-400 border border-cyan-500/20"
+}
+
+func headerStatusClass(status string) string {
+	switch status {
+	case "CRITICAL":
+		return "bg-rose-950/60 border border-rose-500/40 text-rose-300 animate-pulse"
+	case "WARNING":
+		return "bg-amber-950/60 border border-amber-500/40 text-amber-300"
+	default:
+		return "bg-emerald-950/40 border border-emerald-500/30 text-emerald-400"
+	}
+}
+
+func headerDotClass(status string) string {
+	switch status {
+	case "CRITICAL":
+		return "bg-rose-400 animate-ping"
+	case "WARNING":
+		return "bg-amber-400 animate-pulse"
+	default:
+		return "bg-emerald-400 animate-pulse"
+	}
+}
+
+func alertCountColor(count int) string {
+	if count > 0 {
+		return "text-rose-400"
+	}
+	return "text-cyan-400"
+}

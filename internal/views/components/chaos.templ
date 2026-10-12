@@ -1,0 +1,54 @@
+package components
+
+// ChaosControls merender panel simulasi skenario kegagalan sistem (Chaos Engineering)
+templ ChaosControls() {
+	<div class="p-4 rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2">
+				<span class="text-sm">🧪</span>
+				<h3 class="font-mono text-sm font-bold text-white uppercase tracking-wide">Chaos Injection Suite</h3>
+				<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-700 text-slate-300">Simulate Real Incidents</span>
+			</div>
+			<p class="text-xs text-slate-400 mt-0.5">Uji coba ketahanan arsitektur HTMX SSE dan respons OOB swaps di bawah beban ekstrem.</p>
+		</div>
+
+		<!-- Action Buttons -->
+		<div class="flex items-center gap-2 flex-wrap">
+			<!-- 1. CPU Thermal Spike -->
+			<button
+				hx-post="/api/chaos/cpu-spike"
+				hx-swap="none"
+				class="px-3 py-1.5 text-xs font-mono rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
+			>
+				<span>🔥 CPU Spike</span>
+			</button>
+
+			<!-- 2. Memory Leak -->
+			<button
+				hx-post="/api/chaos/ram-leak"
+				hx-swap="none"
+				class="px-3 py-1.5 text-xs font-mono rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
+			>
+				<span>💧 Memory Leak</span>
+			</button>
+
+			<!-- 3. Network Drop -->
+			<button
+				hx-post="/api/chaos/network-drop"
+				hx-swap="none"
+				class="px-3 py-1.5 text-xs font-mono rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
+			>
+				<span>🔌 Network Flap</span>
+			</button>
+
+			<!-- 4. Reset & Heal -->
+			<button
+				hx-post="/api/chaos/heal"
+				hx-swap="none"
+				class="px-3 py-1.5 text-xs font-mono rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
+			>
+				<span>🛡️ Self-Heal All</span>
+			</button>
+		</div>
+	</div>
+}

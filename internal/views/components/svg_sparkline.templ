@@ -1,0 +1,61 @@
+package components
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Sparkline merender kurva SVG tren CPU tanpa sebaris pun library JavaScript di frontend
+templ Sparkline(history []float64, strokeColor string, gradientID string) {
+	<div class="w-full h-10 mt-2">
+		<svg viewBox="0 0 160 36" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+			<defs>
+				<linearGradient id={ gradientID } x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0%" stop-color={ strokeColor } stop-opacity="0.35"></stop>
+					<stop offset="100%" stop-color={ strokeColor } stop-opacity="0.0"></stop>
+				</linearGradient>
+			</defs>
+			<!-- Area Bawah Kurva (Gradient Fill) -->
+			<polygon
+				fill={ fmt.Sprintf("url(#%s)", gradientID) }
+				points={ computePolygonPoints(history, 160, 36) }
+			></polygon>
+			<!-- Garis Kurva (Polyline) -->
+			<polyline
+				fill="none"
+				stroke={ strokeColor }
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				points={ computePolylinePoints(history, 160, 36) }
+			></polyline>
+		</svg>
+	</div>
+}
+
+func computePolylinePoints(history []float64, width float64, height float64) string {
+	if len(history) < 2 {
+		return "0,36 160,36"
+	}
+	var pts []string
+	step := width / float64(len(history)-1)
+	for i, val := range history {
+		x := float64(i) * step
+		// Normalisasikan 0-100 ke koordinat height (inversed: 100% = y:0, 0% = y:height)
+		norm := val / 100.0
+		if norm > 1.0 {
+			norm = 1.0
+		} else if norm < 0.0 {
+			norm = 0.0
+		}
+		y := height - (norm * (height - 4)) - 2
+		pts = append(pts, fmt.Sprintf("%.1f,%.1f", x, y))
+	}
+	return strings.Join(pts, " ")
+}
+
+func computePolygonPoints(history []float64, width float64, height float64) string {
+	linePts := computePolylinePoints(history, width, height)
+	// Tutup polygon ke sudut kanan-bawah dan kiri-bawah
+	return fmt.Sprintf("0,%.1f %s %.1f,%.1f 0,%.1f", height, linePts, width, height, height)
+}

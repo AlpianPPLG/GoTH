@@ -1,0 +1,54 @@
+package views
+
+import (
+	"pulseops/internal/telemetry"
+	"pulseops/internal/views/components"
+)
+
+templ Dashboard(node *telemetry.ClusterNode, allNodes []*telemetry.ClusterNode, logs []telemetry.EventLog, incidents []telemetry.Incident) {
+	@Layout("PulseOps // Real-Time Infrastructure Telemetry") {
+		<!-- SSE Connection Root: Menghubungkan browser ke SSE broker endpoint -->
+		<div hx-ext="sse" sse-connect="/events/stream" class="flex flex-col gap-6">
+			
+			<!-- Section 1: Cluster Selector & Quick Stats -->
+			<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-surface-800/60 border border-surface-700/60 backdrop-blur">
+				<div class="flex items-center gap-3">
+					@components.NodeSelector(allNodes, node.ID, false)
+				</div>
+				<div class="flex items-center gap-4 text-xs font-mono">
+					<div>
+						<span class="text-slate-400">Selected Node:</span>
+						<span class="text-cyan-400 font-bold ml-1">{ node.Name }</span>
+					</div>
+					<div>
+						<span class="text-slate-400">Role:</span>
+						<span class="text-slate-200 ml-1">{ node.Role }</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Section 2: Chaos Engineering Controls -->
+			@components.ChaosControls()
+
+			<!-- Section 3: Telemetry Cards Grid with Real-Time SVG Sparklines -->
+			<!-- Diperbarui secara berkala via sse-swap="telemetry" atau saat switch node -->
+			<div sse-swap="telemetry" hx-swap="outerHTML">
+				@components.MetricsGrid(node, false)
+			</div>
+
+			<!-- Section 4: Split Grid (Active Incidents & Live Log Stream) -->
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<!-- Left Column: Active Incidents Center (1 Col) -->
+				<div class="lg:col-span-1">
+					@components.IncidentsPanel(incidents, false)
+				</div>
+
+				<!-- Right Column: Live Event & Log Stream (2 Cols) -->
+				<div class="lg:col-span-2">
+					@components.LogTable(logs)
+				</div>
+			</div>
+
+		</div>
+	}
+}

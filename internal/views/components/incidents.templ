@@ -1,0 +1,118 @@
+package components
+
+import (
+	"fmt"
+	"pulseops/internal/telemetry"
+)
+
+// IncidentCard merender satu kartu insiden interaktif
+templ IncidentCard(inc telemetry.Incident) {
+	<div
+		id={ fmt.Sprintf("incident-%s", inc.ID) }
+		class={ "p-3.5 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md", incidentCardStyle(inc.Severity, inc.Acknowledged) }
+	>
+		<div class="flex items-start gap-3">
+			<div class={ "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5", incidentIconStyle(inc.Severity) }>
+				if inc.Severity == telemetry.LevelCritical {
+					🔥
+				} else {
+					⚠️
+				}
+			</div>
+			<div>
+				<div class="flex items-center gap-2 flex-wrap">
+					<span class="text-xs font-mono font-bold text-white uppercase">{ inc.Title }</span>
+					<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-900 border border-surface-700 text-slate-300">
+						{ inc.NodeID }
+					</span>
+					if inc.Acknowledged {
+						<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-950/60 border border-blue-500/40 text-blue-300 font-semibold">
+							✓ ACKNOWLEDGED
+						</span>
+					}
+				</div>
+				<div class="text-[11px] font-mono text-slate-400 mt-1 flex items-center gap-2">
+					<span>ID: { inc.ID }</span>
+					<span>•</span>
+					<span>Time: { inc.Timestamp }</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Action Buttons via HTMX -->
+		<div class="flex items-center gap-2 shrink-0">
+			if !inc.Acknowledged {
+				<button
+					hx-post={ fmt.Sprintf("/api/incidents/%s/ack", inc.ID) }
+					hx-target={ fmt.Sprintf("#incident-%s", inc.ID) }
+					hx-swap="outerHTML"
+					class="px-2.5 py-1 text-xs font-mono rounded-lg bg-surface-700 hover:bg-surface-600 border border-surface-600 text-slate-200 transition-all active:scale-95 flex items-center gap-1"
+				>
+					<span>👁️ Acknowledge</span>
+				</button>
+			}
+			<button
+				hx-post={ fmt.Sprintf("/api/incidents/%s/resolve", inc.ID) }
+				hx-target={ fmt.Sprintf("#incident-%s", inc.ID) }
+				hx-swap="outerHTML swap:400ms"
+				class="px-2.5 py-1 text-xs font-mono rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 transition-all active:scale-95 flex items-center gap-1 shadow-sm hover:shadow-emerald-500/20"
+			>
+				<span>✓ Resolve</span>
+			</button>
+		</div>
+	</div>
+}
+
+// IncidentsPanel merender panel daftar seluruh insiden aktif
+templ IncidentsPanel(incidents []telemetry.Incident, oob bool) {
+	<div
+		id="incidents-panel"
+		if oob {
+			hx-swap-oob="outerHTML"
+		}
+		class="rounded-xl bg-surface-800/90 border border-surface-700/80 shadow-lg overflow-hidden flex flex-col"
+	>
+		<!-- Header -->
+		<div class="p-4 border-b border-surface-700/60 flex items-center justify-between bg-surface-800">
+			<div class="flex items-center gap-2">
+				<span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+				<h2 class="font-mono text-sm font-bold text-white tracking-wide uppercase">Active Incident Center</h2>
+				<span class="text-xs font-mono text-slate-400">({ fmt.Sprintf("%d unresolved", len(incidents)) })</span>
+			</div>
+			<div class="text-[11px] font-mono text-slate-500">
+				Actions trigger HTMX atomic swaps
+			</div>
+		</div>
+
+		<!-- List container -->
+		<div class="p-4 flex flex-col gap-3">
+			if len(incidents) == 0 {
+				<div class="py-8 text-center flex flex-col items-center justify-center text-slate-500 font-mono">
+					<span class="text-2xl mb-1 text-emerald-400">✓</span>
+					<span class="text-xs text-slate-400">All cluster nodes nominal. Zero active incidents!</span>
+				</div>
+			} else {
+				for _, inc := range incidents {
+					@IncidentCard(inc)
+				}
+			}
+		</div>
+	</div>
+}
+
+func incidentCardStyle(level telemetry.LogLevel, ack bool) string {
+	if ack {
+		return "bg-surface-800/80 border-surface-700 text-slate-300"
+	}
+	if level == telemetry.LevelCritical {
+		return "bg-rose-950/30 border-rose-500/40 text-rose-200 animate-pulse"
+	}
+	return "bg-amber-950/20 border-amber-500/40 text-amber-200"
+}
+
+func incidentIconStyle(level telemetry.LogLevel) string {
+	if level == telemetry.LevelCritical {
+		return "bg-rose-500/20 border border-rose-500/40 text-rose-400"
+	}
+	return "bg-amber-500/20 border border-amber-500/40 text-amber-400"
+}

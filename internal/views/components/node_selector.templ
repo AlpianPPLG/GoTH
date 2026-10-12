@@ -1,0 +1,50 @@
+package components
+
+import (
+	"fmt"
+	"pulseops/internal/telemetry"
+)
+
+// NodeSelector merender tab switcher cluster node dengan HTMX URL push & OOB swap
+templ NodeSelector(nodes []*telemetry.ClusterNode, activeID string, oob bool) {
+	<div
+		id="node-selector"
+		if oob {
+			hx-swap-oob="outerHTML"
+		}
+		class="flex items-center gap-2 p-1.5 rounded-xl bg-surface-800/80 border border-surface-700/80 overflow-x-auto"
+	>
+		<span class="text-xs font-mono text-slate-400 px-3 uppercase tracking-wider hidden sm:inline">Clusters:</span>
+		for _, n := range nodes {
+			<button
+				hx-post={ fmt.Sprintf("/api/node/%s/select", n.ID) }
+				hx-target="#metrics-grid"
+				hx-swap="outerHTML"
+				hx-push-url={ fmt.Sprintf("?node=%s", n.ID) }
+				class={ "px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-2 whitespace-nowrap", nodeTabStyle(n.ID == activeID) }
+			>
+				<span class={ "w-2 h-2 rounded-full", nodeTabDot(n.Metrics.Status) }></span>
+				<span>{ n.Name }</span>
+				<span class="text-[10px] text-slate-400">[{ n.Region }]</span>
+			</button>
+		}
+	</div>
+}
+
+func nodeTabStyle(isActive bool) string {
+	if isActive {
+		return "bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10 font-bold"
+	}
+	return "text-slate-400 hover:text-white hover:bg-surface-700/60 border border-transparent"
+}
+
+func nodeTabDot(status string) string {
+	switch status {
+	case "CRITICAL":
+		return "bg-rose-400 animate-ping"
+	case "WARNING":
+		return "bg-amber-400"
+	default:
+		return "bg-emerald-400"
+	}
+}
